@@ -1,0 +1,40 @@
+from sqlalchemy import create_engine
+import pandas as pd
+import yfinance as yf
+
+# Configure the connection to your MySQL database
+engine = create_engine('mysql+mysqlconnector://username:password@localhost/database_name')
+
+
+
+# function for import data from yahoo finance and set it to your db 
+# if there is already data only new data shall be stored
+# otherwise new tables will be created
+
+
+def sql_importer(symbol, start ="2022-01-01", end = "2022-10-01" ):   #  default dates
+   try: 
+    
+        max_date = pd.read_sql(f'SELECT MAX(Date) FROM {symbol}', engine).values[0][0]
+        print(max_date)
+        new_data = yf.download(symbol,start=pd.to_datetime(max_date))
+        new_rows = new_data[new_data.index > max_date]
+        new_rows.to_sql(symbol, engine, if_exists ='append' )
+        print(str(len(new_rows)) + ' new rows imported to DB' )
+        
+        
+   except:
+          
+          new_data = yf.download(symbol,start=start, end = end)
+          new_data.to_sql(symbol, engine)
+          print(f'New table create for {symbol} with {str(len(new_data))} rows')
+          
+          
+          
+# list of stocks , please use lower case for tables compatibily
+         
+stocks = ['gs','mmm','f','ge']
+
+
+for stock in stocks :
+    sql_importer(stock, start="2019-01-01", end="2020-01-01")          
